@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 from functools import wraps
 import getpass
+import logging
 import os
 import re
 import time
@@ -18,6 +19,8 @@ from fabric.auth import get_password, set_password
 from fabric.utils import abort, handle_prompt_abort, warn
 from fabric.exceptions import NetworkError
 
+logger = logging.getLogger('fabric')
+
 try:
     import warnings
     warnings.simplefilter('ignore', DeprecationWarning)
@@ -29,7 +32,7 @@ except ImportError, e:
 There was a problem importing our SSH library (see traceback above).
 Please make sure all dependencies are installed and importable.
 """.rstrip()
-    sys.stderr.write(msg + '\n')
+    logger.error(msg + '\n')
     sys.exit(1)
 
 
@@ -140,7 +143,7 @@ class HostConnectionCache(dict):
         Force a new connection to ``key`` host string.
         """
         from fabric.state import env
-        
+
         user, host, port = normalize(key)
         key = normalize_to_string(key)
         seek_gateway = True
@@ -237,10 +240,10 @@ def key_from_env(passphrase=None):
             # NOTE: this may not be the most secure thing; OTOH anybody running
             # the process must by definition have access to the key value,
             # so only serious problem is if they're logging the output.
-            sys.stderr.write("Trying to honor in-memory key %r\n" % env.key)
+            logger.debug("Trying to honor in-memory key %r\n" % env.key)
         for pkey_class in (ssh.rsakey.RSAKey, ssh.dsskey.DSSKey):
             if output.debug:
-                sys.stderr.write("Trying to load it as %s\n" % pkey_class)
+                logger.debug("Trying to load it as %s\n" % pkey_class)
             try:
                 return pkey_class.from_private_key(StringIO(env.key), passphrase)
             except Exception, e:
@@ -555,7 +558,7 @@ def connect(user, host, port, cache, seek_gateway=True):
             err += ")"
             # Debuggin'
             if output.debug:
-                sys.stderr.write(err + '\n')
+                logger.debug(err + '\n')
             # Having said our piece, try again
             if not giving_up:
                 # Sleep if it wasn't a timeout, so we still get timeout-like
@@ -664,8 +667,8 @@ def disconnect_all():
         if output.status:
             # Here we can't use the py3k print(x, end=" ")
             # because 2.5 backwards compatibility
-            sys.stdout.write("Disconnecting from %s... " % denormalize(key))
+            puts("Disconnecting from %s... " % denormalize(key))
         connections[key].close()
         del connections[key]
         if output.status:
-            sys.stdout.write("done.\n")
+            puts("done.\n")

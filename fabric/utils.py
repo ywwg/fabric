@@ -2,11 +2,13 @@
 Internal subroutines for e.g. aborting execution with an error message,
 or performing indenting on multiline output.
 """
+import logging
 import os
 import sys
 import textwrap
 from traceback import format_exc
 
+logger = logging.getLogger('fabric')
 
 def _encode(msg, stream):
     if isinstance(msg, unicode) and hasattr(stream, 'encoding') and not stream.encoding is None:
@@ -47,8 +49,8 @@ def abort(msg):
         from colors import red
 
     if output.aborts:
-        sys.stderr.write(red("\nFatal error: %s\n" % _encode(msg, sys.stderr)))
-        sys.stderr.write(red("\nAborting.\n"))
+        logger.error(red("\nFatal error: %s\n" % _encode(msg, logger)))
+        logger.error(red("\nAborting.\n"))
 
     if env.abort_exception:
         raise env.abort_exception(msg)
@@ -79,8 +81,8 @@ def warn(msg):
         from colors import magenta
 
     if output.warnings:
-        msg = _encode(msg, sys.stderr)
-        sys.stderr.write(magenta("\nWarning: %s\n\n" % msg))
+        msg = _encode(msg, logger)
+        logger.warn(magenta("\nWarning: %s\n\n" % msg))
 
 
 def indent(text, spaces=4, strip=False):
@@ -139,9 +141,7 @@ def puts(text, show_prefix=None, end="\n", flush=False):
         prefix = ""
         if env.host_string and show_prefix:
             prefix = "[%s] " % env.host_string
-        sys.stdout.write(prefix + _encode(text, sys.stdout) + end)
-        if flush:
-            sys.stdout.flush()
+        logger.info(prefix + _encode(text, sys.stdout) + end)
 
 
 def fastprint(text, show_prefix=False, end="", flush=True):

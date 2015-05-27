@@ -2,16 +2,19 @@ from __future__ import with_statement
 
 from functools import wraps
 import inspect
+import logging
 import sys
 import textwrap
 
 from fabric import state
-from fabric.utils import abort, warn, error
+from fabric.utils import abort, puts, warn, error
 from fabric.network import to_dict, normalize_to_string, disconnect_all
 from fabric.context_managers import settings
 from fabric.job_queue import JobQueue
 from fabric.task_utils import crawl, merge, parse_kwargs
 from fabric.exceptions import NetworkError
+
+logger = logging.getLogger('fabric')
 
 if sys.version_info[:2] == (2, 5):
     # Python 2.5 inspect.getargspec returns a tuple
@@ -138,7 +141,7 @@ class Task(object):
         pool_size = min((pool_size, len(hosts)))
         # Inform user of final pool size for this task
         if state.output.debug:
-            print("Parallel tasks now using pool size of %d" % pool_size)
+            puts("Parallel tasks now using pool size of %d" % pool_size)
         return pool_size
 
 
@@ -216,7 +219,7 @@ def _execute(task, host, my_env, args, kwargs, jobs, queue, multiprocessing):
     """
     # Log to stdout
     if state.output.running and not hasattr(task, 'return_value'):
-        print("[%s] Executing task '%s'" % (host, my_env['command']))
+        puts("[%s] Executing task '%s'" % (host, my_env['command']))
     # Create per-run env with connection settings
     local_env = to_dict(host)
     local_env.update(my_env)
@@ -249,7 +252,7 @@ def _execute(task, host, my_env, args, kwargs, jobs, queue, multiprocessing):
                 if e.__class__ is not SystemExit:
                     if not (isinstance(e, NetworkError) and
                             _is_network_error_ignored()):
-                        sys.stderr.write("!!! Parallel execution exception under host %r:\n" % name)
+                        logger.error("!!! Parallel execution exception under host %r:\n" % name)
                     submit(e)
                 # Here, anything -- unexpected exceptions, or abort()
                 # driven SystemExits -- will bubble up and terminate the
